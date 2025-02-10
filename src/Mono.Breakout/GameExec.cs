@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Mono.Breakout.Components;
@@ -10,10 +9,11 @@ public class GameExec : Game
 {
     private const float _barSpeed = 300;
 
-    private bool _isGameOver;
+    private GameState _gameState;
     private Rectangle _bar;
     private Ball _ball;
     private KeyboardState _keyboardState;
+    private Label _gameOverLabel;
     private Texture2D _barTexture;
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
@@ -55,14 +55,28 @@ public class GameExec : Game
                 height: 15),
             Texture = ballTexture
         };
+
+        _gameOverLabel = new Label {
+            Text = "GAME OVER",
+            Font = Content.Load<SpriteFont>("monogram")
+        };
+
+        var labelBounds = _gameOverLabel.Font.MeasureString(_gameOverLabel.Text);
+        _gameOverLabel.Position = new Vector2(
+            x: (_graphics.PreferredBackBufferWidth - labelBounds.X) / 2,
+            y: (_graphics.PreferredBackBufferHeight - labelBounds.Y) / 2);
     }
 
     protected override void Update(GameTime gameTime) {
         _keyboardState = Keyboard.GetState();
-        if (IsPressed(Keys.Escape)) Exit();
+        if (_keyboardState.IsKeyDown(Keys.Escape)) Exit();
 
-        HandleKeyboard(gameTime);
-        ProcessBall(gameTime);
+        switch (_gameState) {
+            case GameState.Running:
+                HandleKeyboard(gameTime);
+                ProcessBall(gameTime);
+                break;
+        }
 
         base.Update(gameTime);
     }
@@ -72,21 +86,26 @@ public class GameExec : Game
 
         _spriteBatch.Begin();
 
-        _spriteBatch.Draw(_barTexture, _bar, Color.White);
-        _spriteBatch.Draw(_ball.Texture, _ball.Bounds, Color.White);
+        switch (_gameState) {
+            case GameState.Running:
+                _spriteBatch.Draw(_barTexture, _bar, Color.White);
+                _spriteBatch.Draw(_ball.Texture, _ball.Bounds, Color.White);
+                break;
+
+            case GameState.GameOver:
+                _spriteBatch.DrawString(_gameOverLabel.Font, _gameOverLabel.Text, _gameOverLabel.Position, Color.White);
+                break;
+        }
 
         _spriteBatch.End();
 
         base.Draw(gameTime);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool IsPressed(Keys key) => _keyboardState.IsKeyDown(key);
-
     private void HandleKeyboard(GameTime gameTime) {
-        if (IsPressed(Keys.Right) || IsPressed(Keys.D)) {
+        if (_keyboardState.IsKeyDown(Keys.Right) || _keyboardState.IsKeyDown(Keys.D)) {
             _bar.X += (int)(_barSpeed * gameTime.ElapsedGameTime.TotalSeconds);
-        } else if (IsPressed(Keys.Left) || IsPressed(Keys.A)) {
+        } else if (_keyboardState.IsKeyDown(Keys.Left) || _keyboardState.IsKeyDown(Keys.A)) {
             _bar.X -= (int)(_barSpeed * gameTime.ElapsedGameTime.TotalSeconds);
         }
 
@@ -103,6 +122,6 @@ public class GameExec : Game
         if (_ball.Bounds.X < 0) _ball.Direction.X = 1.0f;
         else if (_ball.Bounds.Right >= _graphics.PreferredBackBufferWidth) _ball.Direction.X = -1.0f;
         else if (_ball.Bounds.Y < 0) _ball.Direction.Y = 1.0f;
-        else if (_ball.Bounds.Bottom >= _graphics.PreferredBackBufferHeight) _isGameOver = true;
+        else if (_ball.Bounds.Bottom >= _graphics.PreferredBackBufferHeight) _gameState = GameState.GameOver;
     }
 }

@@ -3,10 +3,8 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace Mono.Breakout.Components;
 
-internal struct Block
+public struct Background
 {
-    public bool Hide;
-    public int Score;
     public Rectangle Bounds;
     public Texture2D Texture;
 }
